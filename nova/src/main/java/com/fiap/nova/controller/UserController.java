@@ -5,9 +5,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.fiap.nova.dto.RegisterRequest;
+import com.fiap.nova.dto.UserResponse;
 import com.fiap.nova.filters.UserFilters;
 import com.fiap.nova.model.User;
 import com.fiap.nova.service.UserService;
@@ -25,9 +27,9 @@ public class UserController {
     }
 
     @PostMapping
-    public EntityModel<User> create(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody RegisterRequest request) {
         var user = userService.createUser(request.toModel());
-        return user.toEntityModel();
+        return ResponseEntity.ok(UserResponse.from(user));
     }
 
     @GetMapping
