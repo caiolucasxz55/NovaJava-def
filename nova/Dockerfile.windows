@@ -24,40 +24,40 @@ ENV JAVA_HOME=C:\jdk \
 RUN $env:PATH = $env:JAVA_HOME + '\bin;' + $env:MAVEN_HOME + '\bin;' + $env:PATH; \
     [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine)
 
-WORKDIR /app
+WORKDIR C:\\app
 
 # Copy Maven wrapper and pom.xml
-COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
-COPY mvnw.cmd .
+COPY pom.xml C:\\app\\
+COPY .mvn C:\\app\\.mvn\\
+COPY mvnw C:\\app\\
+COPY mvnw.cmd C:\\app\\
 
 # Download dependencies (cached layer)
-RUN C:/maven/bin/mvn dependency:go-offline -B
+RUN C:\\maven\\bin\\mvn dependency:go-offline -B
 
 # Copy source code
-COPY src ./src
+COPY src C:\\app\\src\\
 
 # Build the application
-RUN C:/maven/bin/mvn clean package -DskipTests
+RUN C:\\maven\\bin\\mvn clean package -DskipTests
 
 # Runtime stage - Using Server Core (Nano doesn't support all features)
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 # Copy OpenJDK from build stage
-COPY --from=build C:/jdk C:/jdk
+COPY --from=build C:\\jdk C:\\jdk
 
 # Set environment variables
-ENV JAVA_HOME=C:/jdk \
-    PATH="C:/jdk/bin;${PATH}"
+ENV JAVA_HOME=C:\\jdk
+RUN setx /M PATH "%JAVA_HOME%\\bin;%PATH%"
 
-WORKDIR /app
+WORKDIR C:\\app
 
 # Copy the built jar from build stage
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build C:\\app\\target\\*.jar C:\\app\\app.jar
 
 # Expose port
 EXPOSE 8000
 
 # Run the application
-ENTRYPOINT ["C:/jdk/bin/java.exe", "-jar", "app.jar"]
+ENTRYPOINT ["C:\\jdk\\bin\\java.exe", "-jar", "C:\\app\\app.jar"]
