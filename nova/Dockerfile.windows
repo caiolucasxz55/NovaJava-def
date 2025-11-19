@@ -24,7 +24,7 @@ ENV JAVA_HOME=C:\jdk \
 RUN $env:PATH = $env:JAVA_HOME + '\bin;' + $env:MAVEN_HOME + '\bin;' + $env:PATH; \
     [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine)
 
-WORKDIR C:\app
+WORKDIR /app
 
 # Copy Maven wrapper and pom.xml
 COPY pom.xml .
@@ -33,13 +33,13 @@ COPY mvnw .
 COPY mvnw.cmd .
 
 # Download dependencies (cached layer)
-RUN C:\maven\bin\mvn dependency:go-offline -B
+RUN C:/maven/bin/mvn dependency:go-offline -B
 
 # Copy source code
-COPY src .\src
+COPY src ./src
 
 # Build the application
-RUN C:\maven\bin\mvn clean package -DskipTests
+RUN C:/maven/bin/mvn clean package -DskipTests
 
 # Runtime stage - Using Nano Server for smaller size
 FROM mcr.microsoft.com/windows/nanoserver:ltsc2019
@@ -54,10 +54,10 @@ USER ContainerAdministrator
 RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 USER ContainerUser
 
-WORKDIR C:\app
+WORKDIR /app
 
 # Copy the built jar from build stage
-COPY --from=build C:\app\target\*.jar app.jar
+COPY --from=build /app/target/*.jar app.jar
 
 # Expose port
 EXPOSE 8000
