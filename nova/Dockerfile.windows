@@ -45,10 +45,10 @@ RUN C:/maven/bin/mvn clean package -DskipTests
 FROM mcr.microsoft.com/windows/nanoserver:ltsc2019
 
 # Copy OpenJDK from build stage
-COPY --from=build C:\jdk C:\jdk
+COPY --from=build C:/jdk C:/jdk
 
 # Set environment variables
-ENV JAVA_HOME=C:\jdk
+ENV JAVA_HOME=C:/jdk
 
 USER ContainerAdministrator
 RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
@@ -63,4 +63,4 @@ COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8000
 
 # Run the application
-ENTRYPOINT ["C:\\jdk\\bin\\java.exe", "-jar", "app.jar"]
+ENTRYPOINT ["C:/jdk/bin/java.exe", "-jar", "app.jar"]
