@@ -31,7 +31,7 @@ services:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK=DEBUG
 
-    restart: unless-stopped
+    restart: "no"
 
     # Windows container specific settings
     isolation: process
