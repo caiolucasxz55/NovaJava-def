@@ -1,60 +1,32 @@
-# Single-stage build to avoid multi-stage copy bug on Windows
+# Windows Container Dockerfile for Spring Boot Application
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+# Use CMD shell for better compatibility
+SHELL ["cmd", "/S", "/C"]
 
-# Install OpenJDK 17
-RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
-    Invoke-WebRequest -Uri 'https://aka.ms/download-jdk/microsoft-jdk-17.0.10-windows-x64.zip' -OutFile 'jdk.zip'; \
-    Expand-Archive jdk.zip -DestinationPath C:\; \
-    Remove-Item jdk.zip; \
-    Get-ChildItem C:\ -Directory | Where-Object { $_.Name -like 'jdk*' } | Rename-Item -NewName 'jdk'
+# Install Chocolatey
+RUN powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
 
-# Install Maven
-RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
-    Invoke-WebRequest -Uri 'https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.zip' -OutFile 'maven.zip'; \
-    Expand-Archive maven.zip -DestinationPath C:\; \
-    Remove-Item maven.zip; \
-    Rename-Item C:\apache-maven-3.9.6 C:\maven
+# Install OpenJDK 17 and Maven via Chocolatey (easier and more reliable)
+RUN choco install openjdk17 -y && choco install maven -y
 
-# Set environment variables
-ENV JAVA_HOME=C:\\jdk \
-    MAVEN_HOME=C:\\maven
+# Refresh environment
+RUN refreshenv
 
-RUN $env:PATH = $env:JAVA_HOME + '\bin;' + $env:MAVEN_HOME + '\bin;' + $env:PATH; \
-    [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine)
+WORKDIR C:\app
 
-WORKDIR C:\\app
+# Copy project files
+COPY pom.xml .
+COPY src src
 
-# Copy Maven wrapper and pom.xml
-COPY pom.xml C:\\app\\
-COPY .mvn C:\\app\\.mvn\\
-COPY mvnw C:\\app\\
-COPY mvnw.cmd C:\\app\\
-
-# Download dependencies (cached layer)
-RUN C:\\maven\\bin\\mvn dependency:go-offline -B
-
-# Copy source code
-COPY src C:\\app\\src\\
-
-# Build the application (without suppressing output)
-RUN Write-Host '=== Starting Maven Build ===' ; \
-    C:\\maven\\bin\\mvn clean package -DskipTests ; \
-    Write-Host '=== Maven Exit Code:' $LASTEXITCODE '===' ; \
-    if ($LASTEXITCODE -ne 0) { Write-Error 'Maven build failed!' ; exit $LASTEXITCODE }
+# Build with Maven (using system Maven from Chocolatey)
+RUN mvn clean package -DskipTests
 
 # Verify JAR was created
-RUN if (Test-Path C:\\app\\target\\nova-0.0.1-SNAPSHOT.jar) { \
-        Write-Host 'SUCCESS: JAR file found!' \
-    } else { \
-        Write-Host 'ERROR: JAR file not found. Listing target directory:' ; \
-        if (Test-Path C:\\app\\target) { Get-ChildItem C:\\app\\target } else { Write-Host 'Target directory does not exist!' } ; \
-        exit 1 \
-    }
+RUN dir target
 
 # Expose port
 EXPOSE 8000
 
-# Run the application (using absolute path)
-ENTRYPOINT ["C:\\jdk\\bin\\java.exe", "-jar", "C:\\app\\target\\nova-0.0.1-SNAPSHOT.jar"]
+# Run the application
+CMD ["java", "-jar", "C:\\app\\target\\nova-0.0.1-SNAPSHOT.jar"]
