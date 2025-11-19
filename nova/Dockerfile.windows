@@ -41,6 +41,9 @@ COPY src C:\\app\\src\\
 # Build the application
 RUN C:\\maven\\bin\\mvn clean package -DskipTests
 
+# List target directory to verify JAR was created
+RUN powershell -Command "Get-ChildItem C:\\app\\target -Recurse | Select-Object FullName"
+
 # Expose port
 EXPOSE 8000
 
