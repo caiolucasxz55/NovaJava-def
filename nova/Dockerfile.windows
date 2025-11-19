@@ -38,11 +38,20 @@ RUN C:\\maven\\bin\\mvn dependency:go-offline -B
 # Copy source code
 COPY src C:\\app\\src\\
 
-# Build the application
-RUN C:\\maven\\bin\\mvn clean package -DskipTests
+# Build the application (without suppressing output)
+RUN Write-Host '=== Starting Maven Build ===' ; \
+    C:\\maven\\bin\\mvn clean package -DskipTests ; \
+    Write-Host '=== Maven Exit Code:' $LASTEXITCODE '===' ; \
+    if ($LASTEXITCODE -ne 0) { Write-Error 'Maven build failed!' ; exit $LASTEXITCODE }
 
-# List target directory to verify JAR was created
-RUN if (Test-Path C:\\app\\target) { Get-ChildItem C:\\app\\target -Name } else { Write-Error 'Target directory not found!' ; exit 1 }
+# Verify JAR was created
+RUN if (Test-Path C:\\app\\target\\nova-0.0.1-SNAPSHOT.jar) { \
+        Write-Host 'SUCCESS: JAR file found!' \
+    } else { \
+        Write-Host 'ERROR: JAR file not found. Listing target directory:' ; \
+        if (Test-Path C:\\app\\target) { Get-ChildItem C:\\app\\target } else { Write-Host 'Target directory does not exist!' } ; \
+        exit 1 \
+    }
 
 # Expose port
 EXPOSE 8000
