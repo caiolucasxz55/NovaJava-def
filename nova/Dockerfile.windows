@@ -26,7 +26,7 @@ RUN [Environment]::SetEnvironmentVariable('PATH', $env:JAVA_HOME + '\bin;' + $en
 # Switch to CMD for Maven build
 SHELL ["cmd", "/S", "/C"]
 
-WORKDIR C:\app
+WORKDIR C:\\app
 
 # Copy pom.xml first for dependency caching
 COPY pom.xml .
