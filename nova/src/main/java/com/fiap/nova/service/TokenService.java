@@ -2,6 +2,7 @@ package com.fiap.nova.service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -9,6 +10,7 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import com.fiap.nova.dto.TokenResponse;
+import com.fiap.nova.model.User;
 
 @Service
 public class TokenService {
@@ -22,20 +24,23 @@ public class TokenService {
     public TokenResponse generateToken(Authentication authentication) {
         Instant now = Instant.now();
 
-        var role = authentication.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .findFirst()
-            .orElse("ROLE_USER");
+        User user = (User) authentication.getPrincipal();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("nova-api")
                 .issuedAt(now)
                 .expiresAt(now.plus(24, ChronoUnit.HOURS))
-                .subject(authentication.getName())
-                .claim("role", role)
+                .subject(user.getEmail()) 
+                .claim("id", user.getId()) 
                 .build();
         
-        var token = this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-        return new TokenResponse(token, authentication.getName(), role);
+        String token = this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+
+        return new TokenResponse(
+            token,
+            user.getId(),
+            user.getName(),            
+            user.getEmail()
+        );
     }
 }

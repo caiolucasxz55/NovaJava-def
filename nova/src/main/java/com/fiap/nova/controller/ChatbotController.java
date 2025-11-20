@@ -1,6 +1,6 @@
 package com.fiap.nova.controller;
 
-import com.fiap.nova.service.PerplexityService;
+import com.fiap.nova.service.ChatbotService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -10,9 +10,9 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class ChatbotController {
 
-    private final PerplexityService perplexityService;
+    private final ChatbotService perplexityService;
 
-    public ChatbotController(PerplexityService perplexityService) {
+    public ChatbotController(ChatbotService perplexityService) {
         this.perplexityService = perplexityService;
     }
 

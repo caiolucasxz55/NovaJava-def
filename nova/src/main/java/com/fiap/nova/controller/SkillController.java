@@ -33,7 +33,7 @@ public class SkillController {
     @GetMapping
     @Operation(summary = "List all skills with pagination", description = "Returns paginated list of skills with HATEOAS links")
     public PagedModel<EntityModel<Skill>> getAll(
-            @PageableDefault(size = 10, sort = "name") Pageable pageable,
+            @PageableDefault(size = 10, sort = "id") Pageable pageable,
             PagedResourcesAssembler<Skill> assembler) {
         log.info("Listing paginated skills - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         var page = skillService.listAllPaginated(pageable);

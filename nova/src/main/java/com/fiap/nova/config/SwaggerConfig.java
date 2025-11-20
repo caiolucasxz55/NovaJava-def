@@ -11,9 +11,9 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Nova - API")
                         .version("1.0.0")
-                        .description("API RESTful para o sistema NOVA - plataforma de gestão de metas profissionais com recomendações personalizadas usando IA")
+                        .description("RESTfull API for NOVA's system - Professional goal management platform with personalized recommendations using AI.")
                         .contact(new Contact()
-                                .name("Equipe NOVA")
+                                .name("Team NOVA")
                                 .url("https://github.com/joaoGFG/NovaJava")));
     }
 }

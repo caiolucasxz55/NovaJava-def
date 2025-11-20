@@ -36,7 +36,7 @@ public class UserController {
     @GetMapping
     public PagedModel<EntityModel<User>> getAll(
             UserFilters filters,
-            @PageableDefault(size = 10, sort = "nome") Pageable pageable,
+            @PageableDefault(size = 10, sort = "name") Pageable pageable,
             PagedResourcesAssembler<User> assembler
     ) {
         var page = userService.findAll(pageable, filters);
