@@ -16,11 +16,14 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 
 import com.nimbusds.jose.jwk.JWK;
@@ -42,21 +45,65 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .cors(cors -> cors.configure(http))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/users").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/chatbot/**").hasRole("USER")
-                        .anyRequest().authenticated())
-                .csrf(csrf -> csrf.disable())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .build();
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .formLogin(form -> form.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/users", "/users/").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/login", "/login/").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/register/").permitAll()
+                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/chatbot/**").hasRole("USER")
+                    .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .bearerTokenResolver(customBearerTokenResolver())
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .authenticationEntryPoint((request, response, authException) -> {
+                    System.out.println("DEBUG SECURITY: Authentication failed: " + authException.getMessage());
+                    // authException.printStackTrace(); // Removido para limpar o log
+                    response.sendError(401, "Unauthorized: " + authException.getMessage());
+                })
+            );
+
+        return http.build();
+    }
+
+    @Bean
+    BearerTokenResolver customBearerTokenResolver() {
+        DefaultBearerTokenResolver resolver = new DefaultBearerTokenResolver();
+        return request -> {
+            String path = request.getServletPath();
+            String method = request.getMethod();
+            
+            System.out.println("DEBUG SECURITY: Checking path=" + path + " method=" + method);
+
+            // Ignora token para endpoints públicos (POST)
+            if ("POST".equalsIgnoreCase(method) && 
+                (path.matches("^/users/?$") || path.matches("^/login/?$") || path.matches("^/auth/register/?$"))) {
+                System.out.println("DEBUG SECURITY: Skipping token for public endpoint");
+                return null;
+            }
+            
+            // Ignora token para Swagger e OPTIONS
+            if (path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || "OPTIONS".equalsIgnoreCase(method)) {
+                System.out.println("DEBUG SECURITY: Skipping token for Swagger/OPTIONS");
+                return null;
+            }
+            
+            try {
+                String token = resolver.resolve(request);
+                System.out.println("DEBUG SECURITY: Token found? " + (token != null));
+                return token;
+            } catch (Exception e) {
+                System.out.println("DEBUG SECURITY: Error resolving token: " + e.getMessage());
+                return null;
+            }
+        };
     }
 
     @Bean

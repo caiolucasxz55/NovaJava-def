@@ -51,6 +51,7 @@ public class User implements UserDetails {
 	@Column(name = "nova_objetivo_prof_usuario", nullable = false, length = 255)
 	private String professionalGoal;
 
+	@Transient
 	private String role;
 
 	@ManyToMany
@@ -71,7 +72,7 @@ public class User implements UserDetails {
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return List.of(new SimpleGrantedAuthority(role));
+		return List.of(new SimpleGrantedAuthority("ROLE_USER"));
 	}
 
 	@Override
