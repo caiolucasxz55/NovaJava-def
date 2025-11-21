@@ -1,8 +1,10 @@
 package com.fiap.nova.service;
 
+import com.fiap.nova.dto.ChatMessageResponse;
 import com.fiap.nova.model.AIInteraction;
 import com.fiap.nova.model.User;
 import com.fiap.nova.model.Skill;
+import com.fiap.nova.model.Goal;
 import com.fiap.nova.repository.AIInteractionRepository;
 import com.fiap.nova.repository.UserRepository;
 
@@ -34,16 +36,41 @@ public class ChatbotService {
 
     private static final int MEMORY_SIZE = 6; 
 
-    // Transactional is required to lazily fetch Skills and Goals from the database
-    @Transactional
+    public List<ChatMessageResponse> getUserHistory(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Busca as últimas 50 interações (para não carregar o banco todo)
+        PageRequest pageRequest = PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "id"));
+        List<AIInteraction> interactions = aiInteractionRepository.findByUser(user, pageRequest);
+        
+        // Inverte para ordem cronológica (Antigo -> Novo)
+        Collections.reverse(interactions);
+
+        List<ChatMessageResponse> chatHistory = new ArrayList<>();
+
+        for (AIInteraction interaction : interactions) {
+            // Adiciona a pergunta do usuário
+            chatHistory.add(new ChatMessageResponse("user", interaction.getUserMessage()));
+            
+            // Adiciona a resposta da IA (se houver)
+            if (interaction.getAiResponse() != null) {
+                chatHistory.add(new ChatMessageResponse("bot", interaction.getAiResponse()));
+            }
+        }
+
+        return chatHistory;
+    }
+
     public String chatWithAI(Long userId, String userMessage) {
 
-        // API Key validation
+        // Quick validation
         String cleanKey = apiKey != null ? apiKey.trim() : "";
         if (cleanKey.isEmpty() || cleanKey.contains("default-key-not-set")) {
             throw new RuntimeException("CONFIGURATION ERROR: PERPLEXITY_API_KEY missing.");
         }
 
+        // User Lookup
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
@@ -56,17 +83,17 @@ public class ChatbotService {
 
         List<String> jsonMessages = new ArrayList<>();
 
-        // Build AI Persona with context
+        // Build Persona (Context Injection)
         String systemPersona = buildSystemPersona(user);
         jsonMessages.add("""
             { "role": "system", "content": "%s" }
             """.formatted(escapeJson(systemPersona)).trim());
 
-        // Add conversation history
+        // Add History
         List<String> historyMessages = getHistoryAsJsonList(user);
         jsonMessages.addAll(historyMessages);
 
-        // Add current message
+        // Add Current Message
         jsonMessages.add("""
             { "role": "user", "content": "%s" }
             """.formatted(escapeJson(userMessage)).trim());
@@ -98,7 +125,7 @@ public class ChatbotService {
             Map<String, Object> messageMap = (Map<String, Object>) firstChoice.get("message");
             String aiResponseContent = (String) messageMap.get("content");
 
-            // Save interaction
+            // Save Interaction
             AIInteraction interaction = new AIInteraction();
             interaction.setUser(user);
             interaction.setUserMessage(userMessage);
@@ -121,26 +148,21 @@ public class ChatbotService {
         String name = user.getName();
         String objective = user.getProfessionalGoal() != null ? user.getProfessionalGoal() : "Não definido";
         
-        // Extract Skills
         String skills = "Nenhuma cadastrada";
         if (user.getSkills() != null && !user.getSkills().isEmpty()) {
             skills = user.getSkills().stream()
                     .map((Skill s) -> {
-                        String tech = s.getTechnicalSkill();
-                        String soft = s.getSoftSkill();
-                        if (soft != null && !soft.isBlank()) {
-                            return tech + " (" + soft + ")";
-                        }
-                        return tech;
+                        String skillName = s.getName();
+                        String skillType = (s.getType() != null) ? " (" + s.getType() + ")" : "";
+                        return skillName + skillType;
                     })
                     .collect(Collectors.joining(", "));
         }
 
-        // Extract Goals
         String goals = "Nenhuma cadastrada";
         if (user.getGoals() != null && !user.getGoals().isEmpty()) {
             goals = user.getGoals().stream()
-                    .map(Object::toString) // Fallback to toString if specific getter is unknown
+                    .map(Object::toString) 
                     .collect(Collectors.joining("; "));
         }
 

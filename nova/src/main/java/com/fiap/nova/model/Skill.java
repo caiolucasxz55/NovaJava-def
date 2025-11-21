@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 
 @Entity
-@Table(name = "NOVA_SKILLS_GOALS")
+@Table(name = "NOVA_SKILLS") // Nome de tabela mais limpo
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,19 +18,20 @@ public class Skill {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "skill_seq")
-    @SequenceGenerator(name = "skill_seq", sequenceName = "SEQ_SKILLS_GOALS", allocationSize = 1)
-    @Column(name = "nova_id_habilidade")
+    @SequenceGenerator(name = "skill_seq", sequenceName = "SEQ_SKILLS", allocationSize = 1)
+    @Column(name = "id")
     private Long id;
 
-    @NotBlank(message = "Technical skill is required")
-    @Column(name = "nova_skill_tecnica", nullable = false, length = 100, unique = true)
-    private String technicalSkill;
+    @NotBlank(message = "Skill name is required")
+    @Column(name = "nome", nullable = false, length = 100, unique = true)
+    private String name;
 
-    @Column(name = "nova_soft_skill", length = 100)
-    private String softSkill;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", length = 20)
+    private SkillType type; 
+
 
     public EntityModel<Skill> toEntityModel() {
         return EntityModel.of(this);
     }
-
 }

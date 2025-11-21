@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.fiap.nova.dto.RegisterRequest;
 import com.fiap.nova.dto.UserResponse;
+import com.fiap.nova.dto.UserUpdateRequest;
 import com.fiap.nova.filters.UserFilters;
 import com.fiap.nova.model.User;
 import com.fiap.nova.service.UserService;
@@ -50,8 +51,8 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody RegisterRequest request) {
-        var updatedUser = userService.updateUser(id, request.toModel());
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
+        var updatedUser = userService.updateUser(id, request);
         return ResponseEntity.ok(UserResponse.from(updatedUser));
     }
 

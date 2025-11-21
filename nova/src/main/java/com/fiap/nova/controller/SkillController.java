@@ -31,12 +31,17 @@ public class SkillController {
     }
 
     @GetMapping
-    @Operation(summary = "List all skills with pagination", description = "Returns paginated list of skills with HATEOAS links")
+    @Operation(summary = "List skills with pagination", description = "Returns paginated list of skills for a specific user or all skills if no userId provided")
     public PagedModel<EntityModel<Skill>> getAll(
-            @PageableDefault(size = 10, sort = "id") Pageable pageable,
+            @RequestParam(required = false) Long userId,
+            @PageableDefault(size = 10, sort = "type") Pageable pageable,
             PagedResourcesAssembler<Skill> assembler) {
-        log.info("Listing paginated skills - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
-        var page = skillService.listAllPaginated(pageable);
+        log.info("Listing paginated skills for userId: {} - page: {}, size: {}", userId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        var page = userId != null 
+            ? skillService.listSkillsByUser(userId, pageable)
+            : skillService.listAllPaginated(pageable);
+            
         return assembler.toModel(page, Skill::toEntityModel);
     }
 
@@ -49,10 +54,10 @@ public class SkillController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create new skill", description = "Creates a new skill")
-    public Skill createSkill(@RequestBody @Valid Skill skill) {
-        log.info("Creating skill: {}", skill);
-        return skillService.createSkill(skill);
+    @Operation(summary = "Create new skill", description = "Creates a new skill for a specific user")
+    public Skill createSkill(@RequestBody @Valid Skill skill, @RequestParam Long userId) {
+        log.info("Creating skill: {} for userId: {}", skill, userId);
+        return skillService.createSkill(skill, userId);
     }
 
     @GetMapping("/{id}")
@@ -64,17 +69,18 @@ public class SkillController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update skill", description = "Updates an existing skill")
-    public EntityModel<Skill> updateSkill(@PathVariable Long id, @RequestBody @Valid Skill skill) {
-        log.info("Updating skill with id: {}", id);
-        var updatedSkill = skillService.updateSkill(id, skill);
+    @Operation(summary = "Update skill", description = "Updates an existing skill for a specific user")
+    public EntityModel<Skill> updateSkill(@PathVariable Long id, @RequestParam Long userId, @RequestBody @Valid Skill skill) {
+        log.info("Updating skill with id: {} for userId: {}", id, userId);
+        var updatedSkill = skillService.updateSkill(id, userId, skill);
         return updatedSkill.toEntityModel();
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete skill", description = "Deletes a skill by ID")
-    public void deleteSkill(@PathVariable Long id) {
-        log.info("Deleting skill with id: {}", id);
-        skillService.deleteSkill(id);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete skill", description = "Removes a skill from a specific user")
+    public void deleteSkill(@PathVariable Long id, @RequestParam Long userId) {
+        log.info("Deleting skill with id: {} for userId: {}", id, userId);
+        skillService.deleteSkill(id, userId);
     }
 }

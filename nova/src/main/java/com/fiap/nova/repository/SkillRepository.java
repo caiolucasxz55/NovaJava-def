@@ -7,9 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.Optional;
 
 public interface SkillRepository extends JpaRepository<Skill, Long>, JpaSpecificationExecutor<Skill> {
-    
-    Optional<Skill> findByTechnicalSkill(String technicalSkill);
-    
-    boolean existsByTechnicalSkill(String technicalSkill);
+
+    Optional<Skill> findByNameIgnoreCase(String name);
     
 }

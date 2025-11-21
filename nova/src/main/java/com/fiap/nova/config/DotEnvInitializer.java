@@ -32,10 +32,10 @@ public class DotEnvInitializer implements ApplicationContextInitializer<Configur
                     });
                 
                 environment.getPropertySources().addFirst(new MapPropertySource("dotenv", props));
-                System.out.println("✅ Loaded " + props.size() + " variables from .env file");
+                System.out.println("Loaded " + props.size() + " variables from .env file");
             }
         } catch (IOException e) {
-            System.err.println("❌ Error loading .env: " + e.getMessage());
+            System.err.println("rror loading .env: " + e.getMessage());
         }
     }
 }
